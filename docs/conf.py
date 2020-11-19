@@ -21,7 +21,7 @@ intersphinx_mapping = {'python': ('http://docs.python.org/', None),
 
 # -- Project information -----------------------------------------------------
 
-project = 'pysumstats'
+project = 'KinshipCorrelationGenerator'
 copyright = '2020, Matthijs D. van der Zee'
 author = 'Matthijs D. van der Zee'
 
