@@ -2,7 +2,9 @@
 KinshipCorrelationGenerator documentation
 #########################################
 
-Welcome to pysumstats's documentation!
+Welcome to the KinshipCorrelationGenerator's documentation!
+
+First time here? Best start at :ref:`Get started`
 
 Contents
 ========
