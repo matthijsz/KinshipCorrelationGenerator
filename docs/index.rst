@@ -1,6 +1,6 @@
-########################
-pysumstats documentation
-########################
+#########################################
+KinshipCorrelationGenerator documentation
+#########################################
 
 Welcome to pysumstats's documentation!
 
