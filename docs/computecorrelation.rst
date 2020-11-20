@@ -6,7 +6,7 @@ Creating the input data file
 
 First you will need to create an input data file. This file should be a comma-seperated file with a header and the following columns:
 
-* * :code:FISNumber`: Personal identifier
+* :code:`FISNumber`: Personal identifier
 * :code:`age`: Age
 
 As well as any additional phenotype columns. Any column other than FISNumber and age will be treated as a phenotype, unless otherwise specified using :code:`--exclude`.
