@@ -3,7 +3,7 @@
 # Patch notes
 
 ##### 23-11-2020 (v1.1.0)
- - Added `--bivar` option.
+ - Added `--bivar` option. See [Generating cross-trait-correlations](https://kinshipcorrelationgenerator.readthedocs.io/en/latest/computecorrelation.html#generating-cross-trait-correlations) in the documentation.
  - Rearranged arguments so the order they are printed in with `-h` and `--morehelp` are in line with documentation.
 
 ##### 19-11-2020 (v1.0.0)
