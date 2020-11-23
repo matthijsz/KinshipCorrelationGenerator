@@ -23,7 +23,7 @@ explore_plot = False
 save_separate_data = False
 parallel = False
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 if parallel:
     import multiprocessing as mp
@@ -577,6 +577,109 @@ def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore
     return results_df, resultsn_df
 
 
+def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore_plot=False,
+                   outfileprefix=None, save_separate_data=False, use_repeated_families=False, method='pearson',
+                   correction='', exclude='', use_extended=False, randomsample=False, raw_n=False):
+    phenotype = pd.read_csv(datafile)
+    phenotype['FISNumber'] = phenotype['FISNumber'].astype(str)
+    phenotype['FISNumber'] = phenotype['FISNumber'].str.replace('\.0', '')
+    to_do = get_ped(use_extended)
+    phenotype.columns = [x.replace('.', '_') for x in phenotype.columns]
+    variables = [x for x in phenotype.columns if x not in ['FISNumber', 'sex', 'age', 'Source', 'index']]
+    if exclude != '':
+        variables = [x for x in variables if x not in ','.split(exclude)]
+    if correction != '':
+        print('Corercting for the following: {}'.format(correction))
+        for v in variables:
+            phenotype[v] = pd.to_numeric(phenotype[v], errors='coerce')
+            res = smf.ols('{} ~ {}'.format(v, correction), data=phenotype).fit()
+            phenotype[v] = res.resid
+    results, resultsN, resultsNtot = {}, {}, {}
+    for cortype in list(to_do.keys()):
+        output_dict = dict(ID_0=[str(x) for x in to_do[cortype][0]], ID_1=[str(x) for x in to_do[cortype][1]],
+                           FamID=[int(x) for x in to_do[cortype]['FamID']])
+        output_df = pd.DataFrame.from_dict(output_dict, orient='columns').drop_duplicates()
+        output_mrg = output_df.merge(phenotype, left_on='ID_0', right_on='FISNumber', how='left').drop(axis=1, labels='ID_0')
+        rename_dict0, rename_dict1 = {}, {}
+        for x in list(output_mrg.columns[2:]):
+            rename_dict0[x] = x + '_0'
+            rename_dict1[x] = x + '_1'
+        output_mrg.rename(columns=rename_dict0, inplace=True)
+        final = output_mrg.merge(phenotype, left_on='ID_1', right_on='FISNumber', how='left').drop(axis=1, labels='ID_1')
+        final = final.rename(columns=rename_dict1).sort_values('FamID', ascending=False).reset_index()
+        final = final.dropna(subset=[x+'_0' for x in variables]+[x+'_1' for x in variables], how='all')
+        if randomsample:
+            final = final.sample(frac=1, random_state=seed).drop_duplicates(subset='FamID')
+        len_fin = len(final)
+        resultsNtot[cortype] = {'total': {x: len_fin for x in variables}}
+        resultsN[cortype] = {}
+        if save_separate_data:
+            final.to_csv('{0}_{1}_data.csv'.format(outfileprefix, cortype), index=False)
+        results[cortype] = {}
+        print('bivar_cor_table: Getting correlations: {}              '.format(cortype), end='\r')
+        for n, (var1, var2) in enumerate([[x, y] for x in variables for y in variables]):
+            final[var1 + '_0'] = pd.to_numeric(final[var1 + '_0'], errors='coerce')
+            final[var2 + '_1'] = pd.to_numeric(final[var2 + '_1'], errors='coerce')
+            if var1 not in results[cortype].keys():
+                results[cortype][var1] = {}
+                resultsNtot[cortype][var1] = {}
+                resultsN[cortype][var1] = {}
+            if len(final[[var1 + '_0', var2 + '_1']].dropna()) < 30:
+                results[cortype][var1][var2] = 'NaN'
+                resultsN[cortype][var1][var2] = -1
+                resultsNtot[cortype][var1][var2] = -1
+            else:
+                cdat = final[[var1+'_0', var2+'_1']].dropna(subset=[var1 + '_0', var2 + '_1'])
+                resultsNtot[cortype][var1][var2] = len(cdat)
+                if randomsample or use_repeated_families:
+                    results[cortype][var1][var2] = cdat.corr(method=method).iloc[1, 0]
+                else:
+                    if method == 'kendall':
+                        raise NotImplementedError('A weighted kendall tau correlation is not implemented (yet).')
+                    cdat = final[['FISNumber_0', 'FISNumber_1', var1+'_0', var2+'_1']].dropna(subset=[var1 + '_0', var2 + '_1'])
+                    (unique, arr_inv, counts) = np.unique(cdat[['FISNumber_0', 'FISNumber_1']].values, return_counts=True, return_inverse=True)
+                    cdat['weight'] = (.5 / counts[arr_inv].reshape((len(cdat), 2))).sum(axis=1)
+                    results[cortype][var1][var2] = WeightedCorr(cdat[[var1+'_0', var2+'_1', 'weight']])(method)
+                    resultsN[cortype][var1][var2] = cdat['weight'].sum()
+                if explore_plot:
+                    fig = plt.figure(figsize=(10, 7.5), dpi=80, facecolor='w', edgecolor='k')
+                    fig.add_subplot(1, 3, 1)
+                    ax1 = final[var1 + '_0'].plot.hist(ylim=(0, int(len(final) * (2 / 3))), bins=15)
+                    ax1.set_title('0: m:{0}, sd:{1} \nrange:[{2},{3}]'.format(
+                        round(final[var1 + '_0'].mean(), 2), round(final[var1 + '_0'].std(), 2),
+                        round(final[var1 + '_0'].min(), 2), round(final[var1 + '_0'].max(), 2)
+                    ))
+                    ax_3 = fig.add_subplot(1, 3, 2)
+                    ax3 = final.plot(x=var1 + '_0', y=var2 + '_1', kind='scatter', ax=ax_3)
+                    ax3.set_title('N={2}\n{0}: r:{1}'.format(cortype, round(results[cortype][var1][var2], 2), len_fin))
+                    fig.add_subplot(1, 3, 3)
+                    ax2 = final[var2 + '_1'].plot.hist(ylim=(0, int(len(final) * (2 / 3))), bins=15)
+                    ax2.set_title('1: m:{0}, sd:{1}, \nrange:[{2},{3}]'.format(
+                        round(final[var2 + '_1'].mean(), 2), round(final[var2 + '_1'].std(), 2),
+                        round(final[var2 + '_1'].min(), 2),
+                        round(final[var2 + '_1'].max(), 2),
+                    ))
+                    fig.savefig('{0}_Explore_{1}_{2}.png'.format(outfileprefix, cortype, '{}_{}'.format(var1, var2)))
+                    plt.close()
+    results_df = {x: pd.DataFrame.from_dict(results, orient='index') for x, results in results.items()}
+    if randomsample or use_repeated_families:
+        resultsn_df = {x: pd.DataFrame.from_dict(resultsNtot, orient='index') for x, resultsNtot in resultsNtot.items()}
+    else:
+        resultsn_df = {x: pd.DataFrame.from_dict(resultsN, orient='index') for x, resultsN in resultsN.items()}
+        if raw_n:
+            with pd.ExcelWriter(outfileprefix + '_bivar_Fam_raw_N.xlsx') as writer:
+                for k, v in resultsNtot.items():
+                    pd.DataFrame.from_dict(v, orient='index').to_excel(writer, sheet_name=k)
+    if outfileprefix is not None:
+        with pd.ExcelWriter(outfileprefix + '_bivar_Fam_Correlations.xlsx') as writer:
+            for k, v in results_df.items():
+                v.to_excel(writer, sheet_name=k)
+        with pd.ExcelWriter(outfileprefix + '_bivar_Fam_N.xlsx') as writer:
+            for k, v in resultsn_df.items():
+                v.to_excel(writer, sheet_name=k)
+    return results_df, resultsn_df
+
+
 def printtime(start_t, prefix='Analysis'):
     runtime = time.time() - start_t
     hrs, mins = divmod(runtime, 3600)
@@ -612,30 +715,33 @@ if __name__ == '__main__':
                                        'data and want to use the included optimal-familybased selection it should also '
                                        'contain [] variables.', default=None)
     parser.add_argument('--outprefix', help='Prefix to use for output files.', default=None)
-    parser.add_argument('--pedigree', help='Path to the pedigree file if a reformatted pedigree does not exist, or you'
-                                           'want to create a new reformatted pedigree.', default=None)
-    parser.add_argument('--longitudinal', help='When using longitudinal data add this argument. This will apply find an'
-                                               'optimal survey to use for each subject based on the surveys completed by'
-                                               'other family members. A surveycompletion file is advised here, and the datafile'
-                                               'should contain columns : [\'FISNumber\', \'age\', \'sex\', \'index\', \'Source\']',
-                        action='store_true', default=False)
     parser.add_argument('--extended', help='Use extended pedigrees so the output will unclude Aunt-Nephew, Niece-Nephew, etc. correlations.',
                         action='store_true', default=False)
-    parser.add_argument('--surveycompletion', help='Datafile with survey completion years. Should have columns:['
-                                                   '\'FISNumber\', \'Source\', \'invjr\']'),
+    parser.add_argument('--pedigree', help='Path to the pedigree file if a reformatted pedigree does not exist, or you'
+                                           'want to create a new reformatted pedigree.', default=None)
     parser.add_argument('--method', help='Correlation method, should be one of [\'pearson\', \'spearman\']. Default is pearson.',
                         default='pearson')
+    parser.add_argument('--bivar',  help='Generate bivariate correlation-pairs for all combinations of phenotypes. Note this will generate excel tables rather than csv files.',
+                        action='store_true', default=False)
     parser.add_argument('--correct', help='Formula to use for linear regression correction. Defaults to no corrections.',
                         default='')
     parser.add_argument('--exclude', help='Variables for which no correlation should be calculated, to be used mainly with custom covariates.',
                         default='')
+    parser.add_argument('--raw_n', help='Store an additional csv file with the raw N samples used, in addtion to the weighted N file.',
+                        action='store_true', default=False)
     parser.add_argument('--randomsample', help='Use only 1 pair per family instead of weighting for multiple occurences of the same invididual.',
                         action='store_true', default=False)
     parser.add_argument('--use_repeated_families', help='Add this argument to include all participants in larger '
                                                         'famileies, i.e. don\'t drop or weight for duplicate samples within correlations.',
                         action='store_true', default=False)
-    parser.add_argument('--raw_n', help='Store an additional csv file with the raw N samples used, in addtion to the weighted N file.',
+    parser.add_argument('--longitudinal', help='When using longitudinal data add this argument. This will apply find an'
+                                               'optimal survey to use for each subject based on the surveys completed by'
+                                               'other family members. A surveycompletion file is advised here, and the datafile'
+                                               'should contain columns : [\'FISNumber\', \'age\', \'sex\', \'index\', \'Source\']',
                         action='store_true', default=False)
+
+    parser.add_argument('--surveycompletion', help='Datafile with survey completion years. Should have columns:['
+                                                   '\'FISNumber\', \'Source\', \'invjr\']')
     parser.add_argument('--morehelp', nargs="+", help='Print more help about this script (\'all\') or specific arguments')
     args = parser.parse_args()
     morehelpdict = {
@@ -669,6 +775,10 @@ if __name__ == '__main__':
                  ' - Source: Name of the survey, so ANTR9, or DHBQ12, or YNTR6, etc.'],
         'outprefix': ['The prefix that should be used for output files. Nothing fancy. Files will always be saved as .csv files.',
                       'Output suffixes will always we _Fam_Correlations.csv and _Fam_N.csv.'],
+        'extended': ['Use the extended pedigree file. This will add  the following correlations to the output:',
+                     'AuntNephew, AuntNiece, UnclueNephew, UncleNiece, NephewNephew, NieceNiece, NieceNephew',
+                     'Note this requires an reformatted extended pedigree file.',
+                     'To generate a reformatted extended pedigree file use --extended with --pedigree.'],
         'pedigree': [
             'Specify a pedigree file to generate a reformatted pedigree. This should also be comma seperated file',
             'and should have the following columns:',
@@ -684,26 +794,12 @@ if __name__ == '__main__':
             ' - SpouseHousehold3: Unique numbers for each spouse household',
             'To generate a reformatted extended pedigree use --pedigree with --extended',
             'If you have an extended pedigree file, you do not need a smaller pedigree file.'],
-        'longitudinal': ['This script can do longitudinal selection.',
-                         'WARNING: If you are going to do this I HIGHLY recommend including surveycompletion!'
-                         'It will check within each family which list has',
-                         'been completed the most, and use that survey for all family members.',
-                         'If no perfect survey can be found the survey completed closest in time to the best survey',
-                         'will be picked for those that do not have data on the optimal survey.',
-                         'a file called prefix_familyselected.csv will be saved with results of the selection.',
-                         'This file will automatically be used as input for generating correlation tables.',
-                         'This will also creata JSON file (List_used_per_subject.json) detailing which surveys were used.'],
-        'extended': ['Use the extended pedigree file. This will add  the following correlations to the output:',
-                     'AuntNephew, AuntNiece, UnclueNephew, UncleNiece, NephewNephew, NieceNiece, NieceNephew',
-                     'Note this requires an reformatted extended pedigree file.',
-                     'To generate a reformatted extended pedigree file use --extended with --pedigree.'],
-        'surveycompletion': ['An additional datafile with years of survey completion for longitudinal data.',
-                             'This file should have columns FISNumber, index, Source as described in morehelp data',
-                             'WARNING: If this file is not specified, but longitudinal is used, age will be used as a proxy',
-                             ' This is really not ideal!'],
         'method': ['Method to be used for calculation of correlations. Pearson is the default method.',
                    'Alternatively Spearman rank (spearman) correlations can be calculated.',
                    'Kendall Tau (kendal) corelations can be calculated as long as randomsample or use_repeated_families is enabled.'],
+        'bivar': ['Generate bivariate correlations for each combination of phenotypes.',
+                  'This will generate 2 excel tables, comparable to the standard output (correlations and N).',
+                  'Each excel table will have 1 sheet per kinship, within that table is the correlation matrix of all phenotype pairs.'],
         'correct': ['Formula-style string of corrections to be applied to every phenotype. Linear regression will',
                     'be performed using this formula on each phenotype individually. Some examples:',
                     ' --correction age; this will correct for age-effects',
@@ -713,22 +809,38 @@ if __name__ == '__main__':
                     'Custom covariates can be used, just enter the column name as a covariate in the formula.',
                     'Do note however that any \'.\' in column names should be replaced with \'_\'!'
                     'Additionally any covariates added here should also be added to the exclude argument.'],
+
         'exclude': ['Comma seperated list (WITHOUT spaces) of variables for which no correlation is requested.',
                     'This should mainly be used when adding custom covariates to the correction argument.',
                     'Any custom covariates should be added here as the regression var1~age+var1 may result in errors.'],
-        'randomsample': ['The default of this script is to calculated weighted correlations, and return the sum of weights',
-                         'rather then the true N by default. If you do not want to weigh the correlations, but instead',
-                         'would like to select one pair per family per correlation, add this argument.'
-                         'Setting this will override raw_n.'],
+        'raw_n': ['The default of this script is to calculated weighted correlations, and return the sum of weights',
+                  'rather then the true N by default. If you want an additional csv file (_Fam_raw_N.csv) detailing',
+                  'the raw total number of samples per phenotype, add this argument.',
+                  'This argument will have no effect if either use_repeated_families or randomsample is used.'],
+        'randomsample': [
+            'The default of this script is to calculated weighted correlations, and return the sum of weights',
+            'rather then the true N by default. If you do not want to weigh the correlations, but instead',
+            'would like to select one pair per family per correlation, add this argument.'
+            'Setting this will override raw_n.'],
         'use_repeated_families': ['Adding this argument will prevent weighting by occurences of samples during',
                                   'calculation of kinship correlations. This will yield a larger sample ',
                                   'but there is now no longer any correction for nested families and thus ',
                                   'results will probably bebiased.',
                                   'Setting this overrides raw_n'],
-        'raw_n': ['The default of this script is to calculated weighted correlations, and return the sum of weights',
-                  'rather then the true N by default. If you want an additional csv file (_Fam_raw_N.csv) detailing',
-                  'the raw total number of samples per phenotype, add this argument.',
-                  'This argument will have no effect if either use_repeated_families or randomsample is used.'],
+        'longitudinal': ['This script can do longitudinal selection.',
+                         'WARNING: If you are going to do this I HIGHLY recommend including surveycompletion!'
+                         'It will check within each family which list has',
+                         'been completed the most, and use that survey for all family members.',
+                         'If no perfect survey can be found the survey completed closest in time to the best survey',
+                         'will be picked for those that do not have data on the optimal survey.',
+                         'a file called prefix_familyselected.csv will be saved with results of the selection.',
+                         'This file will automatically be used as input for generating correlation tables.',
+                         'This will also creata JSON file (List_used_per_subject.json) detailing which surveys were used.'],
+
+        'surveycompletion': ['An additional datafile with years of survey completion for longitudinal data.',
+                             'This file should have columns FISNumber, index, Source as described in morehelp data',
+                             'WARNING: If this file is not specified, but longitudinal is used, age will be used as a proxy',
+                             ' This is really not ideal!'],
         'other arguments': ['In the this .py file you can change some additional options:',
                             ' - lower_boundary: minimum age for selecting participants in longitudinal',
                             ' - upper_obundary: maximum age for selecting participants in longitudinal',
@@ -787,9 +899,18 @@ if __name__ == '__main__':
                                            check_cutoff_drops=check_cutoff_drops)
                 printtime(start, 'Longitudinal selection')
                 datafile = args.outprefix + '_familyselected.csv'
-            start = time.time()
-            results, resultsN = make_cor_table(datafile=datafile, seed=seed, explore_plot=explore_plot,
-                           save_separate_data=save_separate_data, outfileprefix=args.outprefix,
-                           use_repeated_families=args.use_repeated_families, method=args.method, correction=args.correct,
-                           use_extended=args.extended, exclude=args.exclude)
-            printtime(start, 'Generating correlation table')
+            if args.bivar:
+                start = time.time()
+                results, resultsN = make_bivar_cor_table(datafile=datafile, seed=seed, explore_plot=explore_plot,
+                                                   save_separate_data=save_separate_data, outfileprefix=args.outprefix,
+                                                   use_repeated_families=args.use_repeated_families, method=args.method,
+                                                   correction=args.correct,
+                                                   use_extended=args.extended, exclude=args.exclude)
+                printtime(start, 'Generating bivariate correlation table')
+            else:
+                start = time.time()
+                results, resultsN = make_cor_table(datafile=datafile, seed=seed, explore_plot=explore_plot,
+                               save_separate_data=save_separate_data, outfileprefix=args.outprefix,
+                               use_repeated_families=args.use_repeated_families, method=args.method, correction=args.correct,
+                               use_extended=args.extended, exclude=args.exclude)
+                printtime(start, 'Generating correlation table')

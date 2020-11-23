@@ -36,6 +36,11 @@ Path to the raw pedigree file, only used when generating a new reformatted pedig
 
 Method for computing correlation, should be Pearson, or Spearman, default is Pearson.
 
+--bivar
+^^^^^^^
+
+Compute bivariate correlations of all combinations of phenotypes. See :ref:`Generating cross-trait correlations`.
+
 --correct
 ^^^^^^^^^
 

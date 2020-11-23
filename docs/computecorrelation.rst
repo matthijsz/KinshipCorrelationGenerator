@@ -36,9 +36,25 @@ To generate the extended kinsip correlations run the following:
 
     python KinshipCorrelationGenerator.py --data mydata.csv --outprefix my_output --extended
 
+Generating cross-trait correlations
+-----------------------------------
 
-Common options
---------------
+To generate cross-trait (ie. bivariate) correlations of the combinations of your phenotypes (i.e. twin1 trait1 - twin1 trait2, mother trait1, son trait2, etc.) you can use the bivar option:
+
+.. code-block:: bash
+
+    python KinshipCorrelationGenerator.py --data mydata.csv --outprefix my_output --bivar
+
+By adding this argument the script will now save two excel (.xlsx) files, one for the correlations, one for the sum of weights (or N depeding on your other :ref:`Script arguments`) named :code:`my_output_bivar_Fam_correlations.xlsx` and :code:`my_output_bivar_Fam_N.xlsx`.
+These tables will have 1 sheet per kinship (1 for MZM, 1 for MZF, etc), and these sheets contain the full correlation matrix of all phenotypes included in your input file. The diagonal of these matrices are the standard within-phenotype kinship correlations (same as the standard output), the off-diagonal are the cross-trait cross-kinship correlations.
+Note these tables are not symmetrical, as they represent different things. Columns are phenotypes in ID_0, and rows are phenotypes in ID_1. As a specific example: in the MotherSon correlation table, column x, row y represents mother trait x and son trait y. Conversiley, column y row x represents the correlation of son's trait x with mother's trait y.
+
+.. note::
+    The calculation for values on the diagonal in each sheet of the bivariate table is identical to that of the output without the :code:`--bivar` option. Therefore if this option is enabled no csv files are stored, only the excel files.
+
+
+Other common options
+--------------------
 
 By default the script calculates weighted Pearson correlation, you can change this to a weighted Spearman correlation by specifying method.
 
