@@ -23,7 +23,7 @@ explore_plot = False
 save_separate_data = False
 parallel = False
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 if parallel:
     import multiprocessing as mp
@@ -327,7 +327,7 @@ def reformat_pedigree(pedigreefilepath='pedigree-hh-all.ped', make_extended=Fals
                         to_do2[k_cortype][k] += v
         for k, v in to_do2.items():
             to_do[k] = v
-        with open('../reformatted_extended_pedigree.pickle', 'wb') as f:
+        with open('reformatted_extended_pedigree.pickle', 'wb') as f:
             pickle.dump(to_do, f)
 
 

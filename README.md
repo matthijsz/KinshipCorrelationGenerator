@@ -2,6 +2,9 @@
 
 # Patch notes
 
+##### 24-11-2020 (v1.1.1)
+ - Fixed an issue that would cause a new reformatted extended pedigree to be saved to the wrong directory.
+
 ##### 23-11-2020 (v1.1.0)
  - Added `--bivar` option. See [Generating cross-trait-correlations](https://kinshipcorrelationgenerator.readthedocs.io/en/latest/computecorrelation.html#generating-cross-trait-correlations) in the documentation.
  - Rearranged arguments so the order they are printed in with `-h` and `--morehelp` are in line with documentation.
