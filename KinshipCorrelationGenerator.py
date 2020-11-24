@@ -494,7 +494,7 @@ def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore
     phenotype.columns = [x.replace('.', '_') for x in phenotype.columns]
     variables = [x for x in phenotype.columns if x not in ['FISNumber', 'sex', 'age', 'Source', 'index']]
     if exclude != '':
-        variables = [x for x in variables if x not in ','.split(exclude)]
+        variables = [x for x in variables if x not in exclude.split(',')]
     if correction != '':
         print('Corercting for the following: {}'.format(correction))
         for v in variables:
@@ -587,7 +587,7 @@ def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, e
     phenotype.columns = [x.replace('.', '_') for x in phenotype.columns]
     variables = [x for x in phenotype.columns if x not in ['FISNumber', 'sex', 'age', 'Source', 'index']]
     if exclude != '':
-        variables = [x for x in variables if x not in ','.split(exclude)]
+        variables = [x for x in variables if x not in exclude.split(',')]
     if correction != '':
         print('Corercting for the following: {}'.format(correction))
         for v in variables:
