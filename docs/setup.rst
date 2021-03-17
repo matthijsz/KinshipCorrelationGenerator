@@ -15,7 +15,7 @@ The script uses several dependencies, once Python is installed you can install t
 
 .. code-block:: bash
 
-    pip install --user --upgrade numpy pandas matplotlib statsmodels scipy
+    pip install --user --upgrade numpy pandas matplotlib statsmodels scipy openpyxl
 
 
 Downloading script

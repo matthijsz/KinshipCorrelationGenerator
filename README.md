@@ -2,6 +2,11 @@
 
 # Patch notes
 
+##### 24-11-2020 (v1.1.2)
+ - Fixed issue that caused `randomsample` and `raw_n` to not work properly.
+ - Added some lines to make it easier to work with straight from Python.
+ - Added `openpyxl` to the list of dependencies to install in documentation.
+ 
 ##### 24-11-2020 (v1.1.1)
  - Fixed an issue that would cause a new reformatted extended pedigree to be saved to the wrong directory.
  - Fixed an issue that would cause columns in `--exlucde` to still be included.

@@ -23,7 +23,7 @@ explore_plot = False
 save_separate_data = False
 parallel = False
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 if parallel:
     import multiprocessing as mp
@@ -487,7 +487,12 @@ class WeightedCorr:
 def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore_plot=False,
                    outfileprefix=None, save_separate_data=False, use_repeated_families=False, method='pearson',
                    correction='', exclude='', use_extended=False, randomsample=False, raw_n=False):
-    phenotype = pd.read_csv(datafile)
+    if isinstance(datafile, str):
+        phenotype = pd.read_csv(datafile)
+    elif isinstance(datafile, pd.DataFrame):
+        phenotype = datafile
+    else:
+        raise TypeError("datafile should be string or pd.DataFrame")
     phenotype['FISNumber'] = phenotype['FISNumber'].astype(str)
     phenotype['FISNumber'] = phenotype['FISNumber'].str.replace('\.0', '')
     to_do = get_ped(use_extended)
@@ -574,20 +579,31 @@ def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore
     if outfileprefix is not None:
         results_df.to_csv(outfileprefix+'_Fam_Correlations.csv')
         resultsn_df.to_csv(outfileprefix+'_Fam_N.csv')
-    return results_df, resultsn_df
+    else:
+        return results_df, resultsn_df
 
 
 def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore_plot=False,
                    outfileprefix=None, save_separate_data=False, use_repeated_families=False, method='pearson',
-                   correction='', exclude='', use_extended=False, randomsample=False, raw_n=False):
+                   correction='', exclude=None, use_extended=False, randomsample=False, raw_n=False):
+    if isinstance(datafile, str):
+        phenotype = pd.read_csv(datafile)
+    elif isinstance(datafile, pd.DataFrame):
+        phenotype = datafile
+    else:
+        raise TypeError("datafile should be string or pd.DataFrame")
+    if isinstance(exclude, str):
+        exclude = exclude.split(',')
+    elif not isinstance(exclude, list):
+        raise TypeError("exclude should be string or list")
     phenotype = pd.read_csv(datafile)
     phenotype['FISNumber'] = phenotype['FISNumber'].astype(str)
     phenotype['FISNumber'] = phenotype['FISNumber'].str.replace('\.0', '')
     to_do = get_ped(use_extended)
     phenotype.columns = [x.replace('.', '_') for x in phenotype.columns]
     variables = [x for x in phenotype.columns if x not in ['FISNumber', 'sex', 'age', 'Source', 'index']]
-    if exclude != '':
-        variables = [x for x in variables if x not in exclude.split(',')]
+    if exclude is not None:
+        variables = [x for x in variables if x not in exclude]
     if correction != '':
         print('Corercting for the following: {}'.format(correction))
         for v in variables:
@@ -677,7 +693,8 @@ def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, e
         with pd.ExcelWriter(outfileprefix + '_bivar_Fam_N.xlsx') as writer:
             for k, v in resultsn_df.items():
                 v.to_excel(writer, sheet_name=k)
-    return results_df, resultsn_df
+    else:
+        return results_df, resultsn_df
 
 
 def printtime(start_t, prefix='Analysis'):
@@ -902,15 +919,21 @@ if __name__ == '__main__':
             if args.bivar:
                 start = time.time()
                 results, resultsN = make_bivar_cor_table(datafile=datafile, seed=seed, explore_plot=explore_plot,
-                                                   save_separate_data=save_separate_data, outfileprefix=args.outprefix,
-                                                   use_repeated_families=args.use_repeated_families, method=args.method,
-                                                   correction=args.correct,
-                                                   use_extended=args.extended, exclude=args.exclude)
+                                                         save_separate_data=save_separate_data,
+                                                         outfileprefix=args.outprefix,
+                                                         use_repeated_families=args.use_repeated_families,
+                                                         method=args.method, correction=args.correct,
+                                                         use_extended=args.extended, exclude=args.exclude,
+                                                         randomsample=args.randomsample, raw_n=args.raw_n)
+
                 printtime(start, 'Generating bivariate correlation table')
             else:
                 start = time.time()
                 results, resultsN = make_cor_table(datafile=datafile, seed=seed, explore_plot=explore_plot,
-                               save_separate_data=save_separate_data, outfileprefix=args.outprefix,
-                               use_repeated_families=args.use_repeated_families, method=args.method, correction=args.correct,
-                               use_extended=args.extended, exclude=args.exclude)
+                                                   save_separate_data=save_separate_data,
+                                                   outfileprefix=args.outprefix,
+                                                   use_repeated_families=args.use_repeated_families,
+                                                   method=args.method, correction=args.correct,
+                                                   use_extended=args.extended, exclude=args.exclude,
+                                                   randomsample=args.randomsample, raw_n=args.raw_n)
                 printtime(start, 'Generating correlation table')
