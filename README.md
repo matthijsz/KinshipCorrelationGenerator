@@ -2,6 +2,9 @@
 
 # Patch notes
 
+##### 17-03-2021 (v1.1.3)
+ - Fixed minor issue that would cause an error after succesful operation.
+
 ##### 17-03-2021 (v1.1.2)
  - Fixed issue that caused `randomsample` and `raw_n` to not work properly.
  - Added some lines to make it easier to work with straight from Python.

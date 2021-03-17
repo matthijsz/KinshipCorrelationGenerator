@@ -23,7 +23,7 @@ explore_plot = False
 save_separate_data = False
 parallel = False
 
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 
 if parallel:
     import multiprocessing as mp
@@ -579,8 +579,7 @@ def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore
     if outfileprefix is not None:
         results_df.to_csv(outfileprefix+'_Fam_Correlations.csv')
         resultsn_df.to_csv(outfileprefix+'_Fam_N.csv')
-    else:
-        return results_df, resultsn_df
+    return results_df, resultsn_df
 
 
 def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore_plot=False,
@@ -693,8 +692,7 @@ def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, e
         with pd.ExcelWriter(outfileprefix + '_bivar_Fam_N.xlsx') as writer:
             for k, v in resultsn_df.items():
                 v.to_excel(writer, sheet_name=k)
-    else:
-        return results_df, resultsn_df
+    return results_df, resultsn_df
 
 
 def printtime(start_t, prefix='Analysis'):
@@ -930,10 +928,8 @@ if __name__ == '__main__':
             else:
                 start = time.time()
                 results, resultsN = make_cor_table(datafile=datafile, seed=seed, explore_plot=explore_plot,
-                                                   save_separate_data=save_separate_data,
-                                                   outfileprefix=args.outprefix,
-                                                   use_repeated_families=args.use_repeated_families,
-                                                   method=args.method, correction=args.correct,
-                                                   use_extended=args.extended, exclude=args.exclude,
-                                                   randomsample=args.randomsample, raw_n=args.raw_n)
+                               save_separate_data=save_separate_data, outfileprefix=args.outprefix,
+                               use_repeated_families=args.use_repeated_families, method=args.method, correction=args.correct,
+                               use_extended=args.extended, exclude=args.exclude,
+                                                         randomsample=args.randomsample, raw_n=args.raw_n)
                 printtime(start, 'Generating correlation table')
