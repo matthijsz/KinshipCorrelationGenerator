@@ -2,6 +2,9 @@
 
 # Patch notes
 
+##### 20-03-2021 (v1.2.0)
+ - Fixed [Issue#1](https://github.com/matthijsz/weightedcorr/issues/1) in weighted correlation
+ 
 ##### 17-03-2021 (v1.1.3)
  - Fixed minor issue that would cause an error after succesful operation.
 

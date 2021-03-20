@@ -23,7 +23,7 @@ explore_plot = False
 save_separate_data = False
 parallel = False
 
-__version__ = '1.1.3'
+__version__ = '1.2.0'
 
 if parallel:
     import multiprocessing as mp
@@ -461,7 +461,7 @@ class WeightedCorr:
         self.x, self.y, self.w = (pd.to_numeric(xyw[i], errors='coerce').values for i in xyw.columns)
 
     def _wcov(self, x, y, ms):
-        return np.sum(self.w * (x - ms[0]) * (y - ms[1])) / np.sum(self.w)
+        return np.sum(self.w * (x - ms[0]) * (y - ms[1]))
 
     def _pearson(self, x=None, y=None):
         x, y = (self.x, self.y) if ((x is None) and (y is None)) else (x, y)
