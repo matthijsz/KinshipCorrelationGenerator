@@ -2,6 +2,9 @@
 
 # Patch notes
 
+##### 25-03-2021 (v1.2.1)
+ - Added argument `min_n` which was in documentation but not implemented in code.
+ 
 ##### 20-03-2021 (v1.2.0)
  - Fixed [Issue#1](https://github.com/matthijsz/weightedcorr/issues/1) in weighted correlation
  

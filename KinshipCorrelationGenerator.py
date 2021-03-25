@@ -23,7 +23,7 @@ explore_plot = False
 save_separate_data = False
 parallel = False
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 
 if parallel:
     import multiprocessing as mp
@@ -486,7 +486,7 @@ class WeightedCorr:
 
 def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore_plot=False,
                    outfileprefix=None, save_separate_data=False, use_repeated_families=False, method='pearson',
-                   correction='', exclude='', use_extended=False, randomsample=False, raw_n=False):
+                   correction='', exclude='', use_extended=False, randomsample=False, raw_n=False, min_n=30):
     if isinstance(datafile, str):
         phenotype = pd.read_csv(datafile)
     elif isinstance(datafile, pd.DataFrame):
@@ -532,7 +532,7 @@ def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore
         for n, i in enumerate(variables):
             final[i + '_0'] = pd.to_numeric(final[i + '_0'], errors='coerce')
             final[i + '_1'] = pd.to_numeric(final[i + '_1'], errors='coerce')
-            if len(final[[i+'_0', i+'_1']].dropna()) < 30:
+            if len(final[[i+'_0', i+'_1']].dropna()) < min_n:
                 results[cortype][i] = 'NaN'
                 resultsN[cortype][i] = -1
                 resultsNtot[cortype][i] = -1
@@ -584,7 +584,7 @@ def make_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore
 
 def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, explore_plot=False,
                    outfileprefix=None, save_separate_data=False, use_repeated_families=False, method='pearson',
-                   correction='', exclude=None, use_extended=False, randomsample=False, raw_n=False):
+                   correction='', exclude=None, use_extended=False, randomsample=False, raw_n=False, min_n=30):
     if isinstance(datafile, str):
         phenotype = pd.read_csv(datafile)
     elif isinstance(datafile, pd.DataFrame):
@@ -639,7 +639,7 @@ def make_bivar_cor_table(datafile='Family_selected_data.csv', seed=1415926536, e
                 results[cortype][var1] = {}
                 resultsNtot[cortype][var1] = {}
                 resultsN[cortype][var1] = {}
-            if len(final[[var1 + '_0', var2 + '_1']].dropna()) < 30:
+            if len(final[[var1 + '_0', var2 + '_1']].dropna()) < min_n:
                 results[cortype][var1][var2] = 'NaN'
                 resultsN[cortype][var1][var2] = -1
                 resultsNtot[cortype][var1][var2] = -1
@@ -744,6 +744,8 @@ if __name__ == '__main__':
                         default='')
     parser.add_argument('--raw_n', help='Store an additional csv file with the raw N samples used, in addtion to the weighted N file.',
                         action='store_true', default=False)
+    parser.add_argument('--min_n',
+                        help='Thershold of N pairs to compute correlation', default=30)
     parser.add_argument('--randomsample', help='Use only 1 pair per family instead of weighting for multiple occurences of the same invididual.',
                         action='store_true', default=False)
     parser.add_argument('--use_repeated_families', help='Add this argument to include all participants in larger '
@@ -922,7 +924,7 @@ if __name__ == '__main__':
                                                          use_repeated_families=args.use_repeated_families,
                                                          method=args.method, correction=args.correct,
                                                          use_extended=args.extended, exclude=args.exclude,
-                                                         randomsample=args.randomsample, raw_n=args.raw_n)
+                                                         randomsample=args.randomsample, raw_n=args.raw_n, min_n=args.min_n)
 
                 printtime(start, 'Generating bivariate correlation table')
             else:
@@ -931,5 +933,5 @@ if __name__ == '__main__':
                                save_separate_data=save_separate_data, outfileprefix=args.outprefix,
                                use_repeated_families=args.use_repeated_families, method=args.method, correction=args.correct,
                                use_extended=args.extended, exclude=args.exclude,
-                                                         randomsample=args.randomsample, raw_n=args.raw_n)
+                                                         randomsample=args.randomsample, raw_n=args.raw_n, min_n=args.min_n)
                 printtime(start, 'Generating correlation table')
