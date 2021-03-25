@@ -908,6 +908,10 @@ if __name__ == '__main__':
             if not os.path.isfile(args.data):
                 print('File {} not found.'.format(args.data))
                 quit()
+            try:
+                min_n = int(args.min_n)
+            except ValueError:
+                raise ValueError("min_n should be an integer")
             if args.longitudinal:
                 start = time.time()
                 make_familybased_selection(datafile=datafile, pedigreefile=args.pedigree,
@@ -924,7 +928,7 @@ if __name__ == '__main__':
                                                          use_repeated_families=args.use_repeated_families,
                                                          method=args.method, correction=args.correct,
                                                          use_extended=args.extended, exclude=args.exclude,
-                                                         randomsample=args.randomsample, raw_n=args.raw_n, min_n=args.min_n)
+                                                         randomsample=args.randomsample, raw_n=args.raw_n, min_n=min_n)
 
                 printtime(start, 'Generating bivariate correlation table')
             else:
@@ -933,5 +937,5 @@ if __name__ == '__main__':
                                save_separate_data=save_separate_data, outfileprefix=args.outprefix,
                                use_repeated_families=args.use_repeated_families, method=args.method, correction=args.correct,
                                use_extended=args.extended, exclude=args.exclude,
-                                                         randomsample=args.randomsample, raw_n=args.raw_n, min_n=args.min_n)
+                                                         randomsample=args.randomsample, raw_n=args.raw_n, min_n=min_n)
                 printtime(start, 'Generating correlation table')
